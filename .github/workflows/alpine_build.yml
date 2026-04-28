@@ -19,7 +19,7 @@ name: Alpine Linux Build
 
 on:
   push:
-    branches: [main, 'rel-*']
+    branches: [alpine, 'rel-*']
     tags:
       - 'v*'
     paths:
@@ -27,7 +27,7 @@ on:
       - '!**.md'
       - '!docs/**'
   pull_request:
-    branches: [main, 'rel-*']
+    branches: [alpine, 'rel-*']
     paths:
       - '**'
       - '!**.md'
