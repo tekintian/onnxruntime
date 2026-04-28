@@ -74,6 +74,24 @@ jobs:
       options: --user root
     
     steps:
+      - name: Install Git (required for checkout with submodules)
+        run: |
+          echo "🔧 Installing Git..."
+          apk update
+          apk add --no-cache git bash
+          
+          # Verify Git version (need >= 2.18 for submodule support)
+          GIT_VERSION=$(git --version | awk '{print $3}')
+          echo "✅ Git installed: $GIT_VERSION"
+          
+          # Check if version is sufficient
+          if [ "$(printf '%s\n' "2.18" "$GIT_VERSION" | sort -V | head -n1)" = "2.18" ]; then
+            echo "✅ Git version is sufficient (>= 2.18)"
+          else
+            echo "❌ Git version too old, need >= 2.18"
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -86,13 +104,11 @@ jobs:
           apk update
           apk add --no-cache \
             curl \
-            bash \
             cmake \
             build-base \
             python3 \
             py3-pip \
             linux-headers \
-            git \
             wget \
             xz \
             tar \
