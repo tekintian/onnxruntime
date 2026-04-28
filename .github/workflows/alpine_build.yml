@@ -67,10 +67,10 @@ env:
 
 jobs:
   build-alpine:
-    name: Build Alpine (${{ env.ALPINE_VERSION }} / ONNX ${{ env.ONNX_VERSION }})
+    name: Build Alpine (${{ github.event.inputs.alpine_version || '3.23' }} / ONNX ${{ github.event.inputs.onnx_version || '1.25.1' }})
     runs-on: ubuntu-latest
     container:
-      image: alpine:${{ env.ALPINE_VERSION }}
+      image: alpine:${{ github.event.inputs.alpine_version || '3.23' }}
       options: --user root
     
     steps:
