@@ -234,12 +234,20 @@ jobs:
           
           BUILD_DIR="build/Linux/Release"
           
-          # Check main library
-          if [ -f "$BUILD_DIR/libonnxruntime.so.${{ env.ONNX_VERSION }}" ]; then
-            echo "✅ libonnxruntime.so.${{ env.ONNX_VERSION }} found"
-            ls -lh "$BUILD_DIR/libonnxruntime.so.${{ env.ONNX_VERSION }}"
+          # Find the actual library file (version may vary)
+          LIB_FILE=$(find "$BUILD_DIR" -name "libonnxruntime.so.*" -type f | head -1)
+          
+          if [ -n "$LIB_FILE" ]; then
+            echo "✅ Main library found: $LIB_FILE"
+            ls -lh "$LIB_FILE"
+            
+            # Extract version from filename
+            DETECTED_VERSION=$(basename "$LIB_FILE" | sed 's/libonnxruntime.so.//')
+            echo "   Detected version: $DETECTED_VERSION"
           else
-            echo "❌ libonnxruntime.so.${{ env.ONNX_VERSION }} not found"
+            echo "❌ libonnxruntime.so.* not found"
+            echo "   Looking in: $BUILD_DIR"
+            ls -la "$BUILD_DIR/" | grep libonnx || true
             exit 1
           fi
           
@@ -272,17 +280,21 @@ jobs:
           HEADER_COUNT=$(find release/include -name "*.h" | wc -l)
           echo "✅ Packaged $HEADER_COUNT header files"
           
+          # Detect version from library
+          LIB_FILE=$(find build/Linux/Release -name "libonnxruntime.so.*" -type f | head -1)
+          DETECTED_VERSION=$(basename "$LIB_FILE" | sed 's/libonnxruntime.so.//')
+          
           # Create tarball
           cd release
-          tar -czf "../onnxruntime-headers-${{ env.ONNX_VERSION }}.tar.gz" include/
+          tar -czf "../onnxruntime-headers-${DETECTED_VERSION}.tar.gz" include/
           cd ..
           
           # Generate checksum
-          sha256sum "onnxruntime-headers-${{ env.ONNX_VERSION }}.tar.gz" > "onnxruntime-headers-${{ env.ONNX_VERSION }}.tar.gz.sha256"
+          sha256sum "onnxruntime-headers-${DETECTED_VERSION}.tar.gz" > "onnxruntime-headers-${DETECTED_VERSION}.tar.gz.sha256"
           
           echo "✅ Headers packaged:"
-          ls -lh "onnxruntime-headers-${{ env.ONNX_VERSION }}.tar.gz"
-          cat "onnxruntime-headers-${{ env.ONNX_VERSION }}.tar.gz.sha256"
+          ls -lh "onnxruntime-headers-${DETECTED_VERSION}.tar.gz"
+          cat "onnxruntime-headers-${DETECTED_VERSION}.tar.gz.sha256"
 
       - name: Prepare artifacts
         run: |
@@ -292,7 +304,12 @@ jobs:
           mkdir -p artifacts
           
           # Copy libraries
-          cp "$BUILD_DIR/libonnxruntime.so.${{ env.ONNX_VERSION }}" artifacts/
+          LIB_FILE=$(find "$BUILD_DIR" -name "libonnxruntime.so.*" -type f | head -1)
+          DETECTED_VERSION=$(basename "$LIB_FILE" | sed 's/libonnxruntime.so.//')
+          
+          echo "   Detected version: $DETECTED_VERSION"
+          
+          cp "$LIB_FILE" artifacts/
           cp "$BUILD_DIR/libonnxruntime_providers_shared.so" artifacts/
           
           # Copy symlinks
@@ -304,10 +321,10 @@ jobs:
           done
           cd ../../../..
           
-          # Copy headers if available
-          if [ -f "onnxruntime-headers-${{ env.ONNX_VERSION }}.tar.gz" ]; then
-            cp "onnxruntime-headers-${{ env.ONNX_VERSION }}.tar.gz" artifacts/
-            cp "onnxruntime-headers-${{ env.ONNX_VERSION }}.tar.gz.sha256" artifacts/
+          # Copy headers if available (use detected version)
+          if [ -f "onnxruntime-headers-${DETECTED_VERSION}.tar.gz" ]; then
+            cp "onnxruntime-headers-${DETECTED_VERSION}.tar.gz" artifacts/
+            cp "onnxruntime-headers-${DETECTED_VERSION}.tar.gz.sha256" artifacts/
           fi
           
           echo "✅ Artifacts prepared:"
