@@ -159,16 +159,8 @@ jobs:
       - name: Build ONNX Runtime
         run: |
           echo "🚀 Starting ONNX Runtime build..."
-          echo "   Version: ${{ env.ONNX_VERSION }}"
           echo "   Parallel jobs: $(nproc)"
           echo ""
-          
-          # Initialize submodules (required for build)
-          echo "🔧 Initializing submodules..."
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git submodule update --init --recursive
-          
-          echo "✅ Submodules initialized "
           
           # Run optimized build script (build.sh is in root directory)
           bash ./build.sh \
@@ -333,7 +325,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: onnxruntime-alpine-${{ env.ALPINE_VERSION }}-${{ env.ONNX_VERSION }}
+          name: onnxruntime-alpine-${{ env.ALPINE_VERSION }}
           path: artifacts/
           retention-days: 30
 
@@ -341,12 +333,11 @@ jobs:
         if: env.CREATE_RELEASE == 'true' && github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: onnxruntime-alpine-v${{ env.ONNX_VERSION }}
-          name: ONNX Runtime Alpine v${{ env.ONNX_VERSION }}
+          tag_name: onnxruntime-alpine-${{ github.ref_name }}
+          name: ONNX Runtime Alpine ${{ github.ref_name }}
           body: |
             ## ONNX Runtime for Alpine Linux
             
-            **Version:** ${{ env.ONNX_VERSION }}  
             **Alpine:** ${{ env.ALPINE_VERSION }}  
             **Architecture:** x86_64  
             **Build Date:** ${{ github.event.head_commit.timestamp || github.event.workflow_run.head_commit.timestamp }}
@@ -354,12 +345,12 @@ jobs:
             ### 📦 Included Files
             
             #### Shared Libraries
-            - `libonnxruntime.so.${{ env.ONNX_VERSION }}` (~24 MB)
+            - `libonnxruntime.so.*` (~24 MB)
             - `libonnxruntime_providers_shared.so` (~16 KB)
             - Symbolic links: `libonnxruntime.so`, `libonnxruntime.so.1`
             
-            #### Development Headers (Optional)
-            - `onnxruntime-headers-${{ env.ONNX_VERSION }}.tar.gz` (170 KB)
+            #### Development Headers
+            - `onnxruntime-headers-*.tar.gz` (170 KB)
             - 14 public API header files
             - SHA256 checksum included
             
@@ -376,7 +367,7 @@ jobs:
             
             ```bash
             # Extract libraries
-            tar -xzf onnxruntime-alpine-v${{ env.ONNX_VERSION }}.tar.gz
+            tar -xzf onnxruntime-alpine-*.tar.gz
             
             # Copy to system
             sudo cp libonnxruntime.so* /usr/local/lib/
@@ -384,7 +375,7 @@ jobs:
             sudo ldconfig
             
             # Optional: Install headers
-            sudo tar -xzf onnxruntime-headers-${{ env.ONNX_VERSION }}.tar.gz -C /usr/local/
+            sudo tar -xzf onnxruntime-headers-*.tar.gz -C /usr/local/
             ```
             
             ### 📝 Build Information
@@ -426,10 +417,10 @@ jobs:
           echo "- ✅ Only public API headers (14 files)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Build Output:**" >> $GITHUB_STEP_SUMMARY
-          echo "- \`libonnxruntime.so.${{ env.ONNX_VERSION }}\` (~24 MB)" >> $GITHUB_STEP_SUMMARY
+          echo "- \`libonnxruntime.so.*\` (~24 MB)" >> $GITHUB_STEP_SUMMARY
           echo "- \`libonnxruntime_providers_shared.so\` (~16 KB)" >> $GITHUB_STEP_SUMMARY
           if [ "${{ env.INCLUDE_HEADERS }}" = "true" ]; then
-            echo "- \`onnxruntime-headers-${{ env.ONNX_VERSION }}.tar.gz\` (170 KB)" >> $GITHUB_STEP_SUMMARY
+            echo "- \`onnxruntime-headers-*.tar.gz\` (170 KB)" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Artifacts:**" >> $GITHUB_STEP_SUMMARY
