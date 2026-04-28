@@ -127,10 +127,9 @@ jobs:
       - name: Initialize and update submodules
         run: |
           echo "🔧 Initializing git submodules..."
-          cd onnxruntime
           
           # Configure safe directory for submodule
-          git config --global --add safe.directory "$GITHUB_WORKSPACE/onnxruntime"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           
           # Initialize and update submodules
           git submodule update --init --recursive
@@ -145,12 +144,12 @@ jobs:
           # Patch stacktrace.cc for musl compatibility
           sed -i \
             's/#if !defined(__ANDROID__) \&\& !defined(__wasm__) \&\& !defined(_OPSCHEMA_LIB_) \&\& !defined(_AIX)/#if !defined(__ANDROID__) \&\& !defined(__wasm__) \&\& !defined(_OPSCHEMA_LIB_) \&\& !defined(_AIX) \&\& defined(__GLIBC__)/' \
-            onnxruntime/core/platform/posix/stacktrace.cc
+            core/platform/posix/stacktrace.cc
           
           echo "✅ Patch applied successfully"
           
           # Verify patch
-          if grep -q "__GLIBC__" onnxruntime/core/platform/posix/stacktrace.cc; then
+          if grep -q "__GLIBC__" core/platform/posix/stacktrace.cc; then
             echo "✅ Patch verified"
           else
             echo "❌ Patch verification failed, maybe already pathed?"
@@ -164,7 +163,11 @@ jobs:
           echo "   Parallel jobs: $(nproc)"
           echo ""
           
-          cd onnxruntime
+          # Initialize submodules (required for build)
+          echo "🔧 Initializing submodules..."
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git submodule update --init --recursive
+          echo "✅ Submodules initialized"
           
           # Run optimized build script
           bash ./build.sh \
@@ -228,7 +231,7 @@ jobs:
           echo "📦 Verifying build output..."
           echo ""
           
-          BUILD_DIR="onnxruntime/build/Linux/Release"
+          BUILD_DIR="build/Linux/Release"
           
           # Check main library
           if [ -f "$BUILD_DIR/libonnxruntime.so.${{ env.ONNX_VERSION }}" ]; then
@@ -261,8 +264,8 @@ jobs:
           mkdir -p release/include
           
           # Copy only public API headers
-          cp onnxruntime/include/onnxruntime/*.h release/include/ 2>/dev/null || true
-          cp -r onnxruntime/include/onnxruntime/core release/include/onnxruntime/ 2>/dev/null || true
+          cp include/onnxruntime/*.h release/include/ 2>/dev/null || true
+          cp -r include/onnxruntime/core release/include/onnxruntime/ 2>/dev/null || true
           
           # Count headers
           HEADER_COUNT=$(find release/include -name "*.h" | wc -l)
@@ -284,7 +287,7 @@ jobs:
         run: |
           echo "📦 Preparing artifacts for upload..."
           
-          BUILD_DIR="onnxruntime/build/Linux/Release"
+          BUILD_DIR="build/Linux/Release"
           mkdir -p artifacts
           
           # Copy libraries
