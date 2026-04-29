@@ -297,21 +297,21 @@ jobs:
           
           # Create standard directory structure (matching official release)
           PACKAGE_DIR="onnxruntime-alpine-${DETECTED_VERSION}"
+          echo "   Creating package directory: ${PACKAGE_DIR}"
           mkdir -p "${PACKAGE_DIR}/lib"
           mkdir -p "${PACKAGE_DIR}/include"
+          echo "   Package directory created: $(ls -la ${PACKAGE_DIR}/)"
           
           # Copy libraries to lib/
           cp "$LIB_FILE" "${PACKAGE_DIR}/lib/"
           cp "$BUILD_DIR/libonnxruntime_providers_shared.so" "${PACKAGE_DIR}/lib/"
           
-          # Copy symlinks
-          cd "$BUILD_DIR"
+          # Copy symlinks (use absolute paths to avoid cd issues)
           for link in libonnxruntime.so libonnxruntime.so.1; do
-            if [ -L "$link" ]; then
-              cp -d "$link" "../../${PACKAGE_DIR}/lib/" 2>/dev/null || true
+            if [ -L "${BUILD_DIR}/${link}" ]; then
+              cp -d "${BUILD_DIR}/${link}" "${PACKAGE_DIR}/lib/" 2>/dev/null || true
             fi
           done
-          cd ../..
           
           # Copy headers to include/ (if packaged)
           if [ -f "onnxruntime-headers-${DETECTED_VERSION}.tar.gz" ]; then
@@ -381,15 +381,22 @@ jobs:
             > "${PACKAGE_DIR}/README.md"
           
           # Create tarball with standard naming
+          echo "   Creating tarball..."
           tar -czf "${PACKAGE_DIR}.tar.gz" "${PACKAGE_DIR}/"
           
           # Generate checksum
+          echo "   Generating checksum..."
           sha256sum "${PACKAGE_DIR}.tar.gz" > "${PACKAGE_DIR}.tar.gz.sha256"
           
           # Move to artifacts
+          echo "   Moving to artifacts directory..."
           mkdir -p artifacts
-          mv "${PACKAGE_DIR}.tar.gz" artifacts/
-          mv "${PACKAGE_DIR}.tar.gz.sha256" artifacts/
+          echo "   Current directory: $(pwd)"
+          echo "   Package files:"
+          ls -lh "${PACKAGE_DIR}.tar.gz" "${PACKAGE_DIR}.tar.gz.sha256"
+          
+          mv "${PACKAGE_DIR}.tar.gz" artifacts/ || { echo "❌ Failed to move tarball"; exit 1; }
+          mv "${PACKAGE_DIR}.tar.gz.sha256" artifacts/ || { echo "❌ Failed to move checksum"; exit 1; }
           
           echo "✅ Artifacts prepared:"
           ls -lh artifacts/
