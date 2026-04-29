@@ -59,7 +59,7 @@ concurrency:
 env:
   ALPINE_VERSION: ${{ github.event.inputs.alpine_version || '3.23' }}
   ONNX_VERSION: ${{ github.event.inputs.onnx_version || '1.25.0' }}
-  CREATE_RELEASE: ${{ github.event.inputs.create_release == 'true' || startsWith(github.ref, 'refs/tags/v') && 'true' || 'false' }}
+  CREATE_RELEASE: ${{ github.event.inputs.create_release == 'true' || startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/v1.25.0-alpine' && 'true' || 'false' }}
 
 jobs:
   build-alpine:
@@ -259,9 +259,25 @@ jobs:
           
           mkdir -p release/include
           
-          # Copy only public API headers
-          cp include/onnxruntime/*.h release/include/ 2>/dev/null || true
-          cp -r include/onnxruntime/core release/include/onnxruntime/ 2>/dev/null || true
+          # Copy only public API headers (matching official release structure)
+          # Root level headers
+          cp include/onnxruntime_c_api.h release/include/ 2>/dev/null || true
+          cp include/onnxruntime_cxx_api.h release/include/ 2>/dev/null || true
+          cp include/onnxruntime_cxx_inline.h release/include/ 2>/dev/null || true
+          cp include/onnxruntime_env_config_keys.h release/include/ 2>/dev/null || true
+          cp include/onnxruntime_ep_c_api.h release/include/ 2>/dev/null || true
+          cp include/onnxruntime_ep_device_ep_metadata_keys.h release/include/ 2>/dev/null || true
+          cp include/onnxruntime_float16.h release/include/ 2>/dev/null || true
+          cp include/onnxruntime_lite_custom_op.h release/include/ 2>/dev/null || true
+          cp include/onnxruntime_run_options_config_keys.h release/include/ 2>/dev/null || true
+          cp include/onnxruntime_session_options_config_keys.h release/include/ 2>/dev/null || true
+          cp include/cpu_provider_factory.h release/include/ 2>/dev/null || true
+          cp include/provider_options.h release/include/ 2>/dev/null || true
+          
+          # Core subdirectory headers
+          mkdir -p release/include/core/providers
+          cp include/core/providers/custom_op_context.h release/include/core/providers/ 2>/dev/null || true
+          cp include/core/providers/resource.h release/include/core/providers/ 2>/dev/null || true
           
           # Count headers
           HEADER_COUNT=$(find release/include -name "*.h" | wc -l)
@@ -376,8 +392,9 @@ jobs:
             '' \
             "- **Built on:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
             "- **Alpine Version:** ${{ env.ALPINE_VERSION }}" \
+            "- **Source Branch:** ${{ github.ref_name }}" \
+            "- **Commit SHA:** ${{ github.sha }}" \
             "- **Workflow:** ${{ github.workflow }}" \
-            "- **Commit:** ${{ github.sha }}" \
             > "${PACKAGE_DIR}/README.md"
           
           # Create tarball with standard naming
@@ -412,14 +429,17 @@ jobs:
         if: env.CREATE_RELEASE == 'true' && github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: onnxruntime-alpine-${{ github.ref_name }}
-          name: ONNX Runtime Alpine ${{ github.ref_name }}
+          tag_name: v${{ env.ONNX_VERSION }}-alpine
+          name: ONNX Runtime Alpine v${{ env.ONNX_VERSION }}
           body: |
             ## ONNX Runtime for Alpine Linux
             
+            **Version:** v${{ env.ONNX_VERSION }}  
             **Alpine:** ${{ env.ALPINE_VERSION }}  
             **Architecture:** x86_64  
             **Build Date:** ${{ github.event.head_commit.timestamp || github.event.workflow_run.head_commit.timestamp }}
+            
+            > **Note:** This release is built from branch `${{ github.ref_name }}` (commit: `${{ github.sha }}`)
             
             ### 📦 Directory Structure
             
@@ -430,11 +450,16 @@ jobs:
             │   ├── libonnxruntime.so.1 -> libonnxruntime.so.{version}
             │   ├── libonnxruntime.so -> libonnxruntime.so.1
             │   └── libonnxruntime_providers_shared.so
-            ├── include/                      # Development headers
-            │   └── onnxruntime/
-            │       ├── onnxruntime_c_api.h
-            │       ├── onnxruntime_cxx_api.h
-            │       └── ... (14 public API headers)
+            ├── include/                      # Development headers (14 files)
+            │   ├── core/
+            │   │   └── providers/
+            │   │       ├── custom_op_context.h
+            │   │       └── resource.h
+            │   ├── cpu_provider_factory.h
+            │   ├── onnxruntime_c_api.h
+            │   ├── onnxruntime_cxx_api.h
+            │   ├── onnxruntime_cxx_inline.h
+            │   └── ... (8 more public API headers)
             └── README.md                     # Usage guide
             \`\`\`
             
@@ -468,9 +493,10 @@ jobs:
             
             ### 📝 Build Information
             
+            - **Source Branch:** `${{ github.ref_name }}`
+            - **Commit SHA:** `${{ github.sha }}`
             - **Triggered by:** ${{ github.event_name }}
-            - **Commit:** ${{ github.sha }}
-            - **Workflow:** ${{ github.workflow }}
+            - **Workflow:** [${{ github.workflow }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
             - **Runner:** GitHub Actions (Alpine container)
             
             ### 🔗 Links
