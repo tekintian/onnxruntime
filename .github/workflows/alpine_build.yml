@@ -56,6 +56,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: true
 
+permissions:
+  contents: write  # Required for creating releases
+  packages: write  # Required for pushing packages (if needed)
+
 env:
   ALPINE_VERSION: ${{ github.event.inputs.alpine_version || '3.23' }}
   ONNX_VERSION: ${{ github.event.inputs.onnx_version || '1.25.0' }}
