@@ -464,8 +464,10 @@ jobs:
             │   ├── onnxruntime_cxx_api.h
             │   ├── onnxruntime_cxx_inline.h
             │   └── ... (8 more public API headers)
-            └── README.md                     # Usage guide
+            └── README.md
             \`\`\`
+            
+            # Usage guide
             
             ### ✨ Optimizations Applied
             
