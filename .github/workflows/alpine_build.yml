@@ -21,7 +21,7 @@ name: Alpine Linux Build
 
 on:
   push:
-    branches: [alpine, 'rel-*']
+    branches: [v1.25.0-alpine]
     tags:
       - 'v*'
     paths:
@@ -29,7 +29,7 @@ on:
       - '!**.md'
       - '!docs/**'
   pull_request:
-    branches: [alpine, 'rel-*']
+    branches: [v1.25.0-alpine]
     paths:
       - '**'
       - '!**.md'
@@ -44,7 +44,7 @@ on:
       onnx_version:
         description: 'ONNX Runtime version (without v prefix)'
         required: false
-        default: '1.25.1'
+        default: '1.25.0'
         type: string
       create_release:
         description: 'Create GitHub Release'
@@ -58,12 +58,12 @@ concurrency:
 
 env:
   ALPINE_VERSION: ${{ github.event.inputs.alpine_version || '3.23' }}
-  ONNX_VERSION: ${{ github.event.inputs.onnx_version || '1.25.1' }}
+  ONNX_VERSION: ${{ github.event.inputs.onnx_version || '1.25.0' }}
   CREATE_RELEASE: ${{ github.event.inputs.create_release == 'true' || startsWith(github.ref, 'refs/tags/v') && 'true' || 'false' }}
 
 jobs:
   build-alpine:
-    name: Build Alpine (${{ github.event.inputs.alpine_version || '3.23' }} / ONNX ${{ github.event.inputs.onnx_version || '1.25.1' }})
+    name: Build Alpine (${{ github.event.inputs.alpine_version || '3.23' }} / ONNX ${{ github.event.inputs.onnx_version || '1.25.0' }})
     runs-on: ubuntu-latest
     container:
       image: alpine:${{ github.event.inputs.alpine_version || '3.23' }}
